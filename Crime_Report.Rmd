@@ -1,0 +1,133 @@
+---
+title: "Chicago Crime Analysis"
+author: "Evan Munson"
+date: "2022-11-20"
+output:
+  bookdown::html_document2: default
+  bookdown::pdf_document2: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r libraries, include=FALSE}
+
+library(data.table)
+library(janitor)
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+library(formattable)
+library(bookdown)
+
+```
+
+```{r ingest_data, include=FALSE, cache=TRUE}
+
+# read in this big file ~1.7GB
+raw_crime <- data.table::fread(
+  file = "data/Crimes_-_2001_to_Present.csv")
+
+```
+
+```{r prep_data, include=FALSE, cache=TRUE}
+
+# cleanup data and configure the columns for further analysis
+prep_crime <- raw_crime %>% 
+  janitor::clean_names() %>%
+  dplyr::mutate(
+    date = lubridate::as_datetime(lubridate::mdy_hms(x = date)),
+    updated_on = lubridate::as_datetime(
+      x = lubridate::mdy_hms(x = updated_on))) %>% 
+  tibble::as_tibble()
+
+```
+
+The following analysis was requested by the office of the Mayor of Chicago in order to better understand when criminal events occurred across the city.  The request was received by the City of Chicago's Advanced Analysis Division (A2D).  The stated purpose of this project was to understand when and what types of criminal activities occurred.  Furthermore the analysis was to assist the Mayor in explaining to the public how the determination of the 
+
+The data for this analysis was acquired from the Chicago Data Portal^[https://data.cityofchicago.org/Public-Safety/Crimes-2001-to-Present/ijzp-q8t2].  The dataset contains incidents of crime (with the exception of murders where data exists for each victim) that occurred in the City of Chicago from 2001 to present, with the exception of events in the last seven days.  The dataset contains `r formattable::comma(nrow(prep_crime), digits = 0)` events specifically from, `r lubridate::as_date(min(prep_crime$date))` to `r lubridate::as_date(max(prep_crime$date))`.  If any questions arise concerning the data, please direct them to the Data Fulfillment and Analysis Division [(DFA)](DFA@ChicagoPolice.org) of the Chicago Police Department.
+
+The Analysis Team began the investigation into crime across the city by first gaining a better understanding of what types of crime typically happened across the city.  As seen in Figure \@ref(fig:explore-crime-chart) the top five offenses seen across the city include:  Theft, Battery, Criminal Damage, Narcotics, and Assault.  
+
+In addition to understanding what crimes occurred it is also useful to understand where crimes are generally being observed across the City of Chicago.  In Figure \@ref(fig:location-crime-chart) we can easily observed that the top five locations where crime is committed is: Street, Residence, Apartment, Sidewalk, and Other locations.
+
+
+
+
+
+
+
+
+
+
+
+
+
+\newpage
+
+### Appendix
+
+```{r explore-crime-chart, echo=FALSE, fig.cap="Types of Crime"}
+
+prep_crime %>% 
+  dplyr::group_by(primary_type) %>% 
+  dplyr::count() %>% 
+  tibble::as_tibble() %>% 
+  ggplot2::ggplot(ggplot2::aes(
+    x = reorder(primary_type, n),
+    y = n)) +
+  ggplot2::geom_bar(stat = "identity") + 
+  ggplot2::coord_flip() +
+  ggplot2::theme_bw() +
+  ggplot2::labs(
+    title = "Type of Crime Commited in Chicago",
+    subtitle = paste0(
+      "Total number of crimes: ", 
+      formatC(x =  nrow(raw_crime), 
+              format = "f", 
+              big.mark = ",", 
+              digits=0)),
+    x = "Crime Type",
+    y = "Number of Crimes")
+
+```
+
+```{r location-crime-chart, echo=FALSE, fig.cap="Where Crimes occured in Chicago"}
+
+prep_crime %>% 
+  dplyr::group_by(location_description) %>% 
+  dplyr::count() %>% 
+  dplyr::ungroup() %>% 
+  dplyr::arrange(desc(n)) %>%
+  dplyr::slice_max(
+    order_by = n,
+    n = 20) %>%
+  ggplot2::ggplot(ggplot2::aes(
+    x = reorder(location_description, n), 
+    y = n)) +
+  ggplot2::geom_bar(stat = "identity") + 
+  ggplot2::coord_flip() +
+  ggplot2::theme_bw() +
+  ggplot2::labs(
+    title = "Where Crimes occured in Chicago (Top 20)",
+    subtitle = paste0(
+      "Total number of crimes: ", 
+      formatC(x =  nrow(raw_crime), 
+              format = "f", 
+              big.mark = ",", 
+              digits=0)),
+    x = "Crime Location",
+    y = "Number of Crimes")
+
+```
+
+
+
+
+
+
+
+
+
+
