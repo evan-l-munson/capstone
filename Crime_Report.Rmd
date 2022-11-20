@@ -3,8 +3,8 @@ title: "Chicago Crime Analysis"
 author: "Evan Munson"
 date: "2022-11-20"
 output:
-  bookdown::html_document2: default
   bookdown::pdf_document2: default
+  bookdown::html_document2: default
 ---
 
 ```{r setup, include=FALSE}
@@ -50,9 +50,84 @@ The data for this analysis was acquired from the Chicago Data Portal^[https://da
 
 The Analysis Team began the investigation into crime across the city by first gaining a better understanding of what types of crime typically happened across the city.  As seen in Figure \@ref(fig:explore-crime-chart) the top five offenses seen across the city include:  Theft, Battery, Criminal Damage, Narcotics, and Assault.  
 
-In addition to understanding what crimes occurred it is also useful to understand where crimes are generally being observed across the City of Chicago.  In Figure \@ref(fig:location-crime-chart) we can easily observed that the top five locations where crime is committed is: Street, Residence, Apartment, Sidewalk, and Other locations.
+In addition to understanding what crimes occurred it is also useful to understand where crimes are happening across the City of Chicago.  In Figure \@ref(fig:location-crime-chart) we can easily observed that the top five locations where crime is committed is: Street, Residence, Apartment, Sidewalk, and Other locations.  
 
+We understand what crimes are of the highest likelihood and where these crimes are physically taking place.  Now we need to better understand when these crimes are generally occurring.  We will start by looking at a all the crimes reported across the entire City across the entire dataset of `r formattable::comma(nrow(prep_crime), digits = 0)` events.  In Figure \@ref(fig:all-crimes) we can see that generally speaking crime in Chicago has decreased since 2003, with a few exceptions observed, with the biggest exception being observed in 2020.  Which is likely attributed to events related to COVID19.
 
+At a quick glance of Figure \@ref(fig:all-crimes), it appears that many of the spikes in crime are at the same or at approximatly the same time every year.  To gain a better understanding, the Team focused in on the Top event of each year.  The results can be observed in ...  the 
+
+```{r all-crimes, echo=FALSE, warning=FALSE, message=FALSE, fig.cap="Chicago Crime"}
+
+# start by looking at the spikes at the beginning of the year
+#   pull out the date of the max crimes for year
+spikes_max <- prep_crime %>% 
+  dplyr::mutate(
+    date_less_time = lubridate::as_date(date)) %>% 
+  dplyr::group_by(date_less_time) %>% 
+  dplyr::count() %>% 
+  dplyr::mutate(
+    year = lubridate::year(date_less_time),
+    month = lubridate::month(date_less_time, label = TRUE)) %>% 
+  dplyr::group_by(year) %>% 
+  dplyr::slice(which.max(n))
+
+# for curiosity stake, when were the min crime days?
+spikes_min <- prep_crime %>% 
+  dplyr::mutate(
+    date_less_time = lubridate::as_date(date)) %>% 
+  dplyr::group_by(date_less_time) %>% 
+  dplyr::count() %>% 
+  dplyr::mutate(
+    year = lubridate::year(date_less_time),
+    month = lubridate::month(date_less_time, label = TRUE)) %>% 
+  dplyr::group_by(year) %>% 
+  dplyr::slice(which.min(n))
+
+# combine the all crime chart with the spike locations
+prep_crime %>% 
+  dplyr::mutate(
+    date_less_time = lubridate::as_date(date)) %>% 
+  dplyr::group_by(date_less_time) %>% 
+  dplyr::count() %>% 
+  dplyr::mutate(
+    month = lubridate::year(date_less_time)) %>% 
+  ggplot2::ggplot(
+    ggplot2::aes(
+      x = date_less_time, 
+      y = n)) +
+  ggplot2::geom_line(
+    ggplot2::aes(
+      color = "Crimes"),) +
+  ggplot2::geom_smooth(
+    ggplot2::aes(
+      color = "Trend")) +
+  ggplot2::geom_point(
+    data = spikes_max,
+    ggplot2::aes(
+      x = spikes_max$date_less_time, 
+      y = spikes_max$n, 
+      color = "Highest Yearly Day"), 
+    size = 2,
+    shape = 4) +
+  ggplot2::geom_point(
+    data = spikes_min,
+    ggplot2::aes(
+      x = spikes_min$date_less_time, 
+      y = spikes_min$n, 
+      color = "Lowest Yearly Day"), 
+    size = 2,
+    shape = 3) +
+  ggplot2::labs(
+    title = "Chicago Crime by Year",
+    x = "Year",
+    y = "Crime Events") +
+  ggplot2::scale_color_manual("",
+    values = c("darkgrey", "red", "blue", "black")) +
+  ggplot2::theme_bw() +
+  ggplot2::theme(
+    legend.position = "bottom") 
+
+```
 
 
 
